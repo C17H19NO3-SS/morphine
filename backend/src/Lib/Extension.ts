@@ -1,3 +1,5 @@
+import chalk from "chalk";
+import { stringToStructureCoercions } from "elysia/schema";
 import { readdir, readFile, stat, exists } from "fs/promises";
 import { join, basename } from "path";
 import vm from "vm";
@@ -218,10 +220,10 @@ export class ExtensionManager {
 
       return manifest;
     } catch (error) {
-      if (error.code === "ENOENT") {
+      if ((error as { code: string }).code === "ENOENT") {
         throw new Error("manifest.json not found");
       }
-      throw new Error(`Invalid manifest.json: ${error.message}`);
+      throw new Error(`Invalid manifest.json: ${(error as Error).message}`);
     }
   }
 
@@ -248,10 +250,14 @@ export class ExtensionManager {
     const sandbox = {
       // Console wrapper
       console: {
-        log: (...args: any[]) => console.log(`[${extensionId}]`, ...args),
-        error: (...args: any[]) => console.error(`[${extensionId}]`, ...args),
-        warn: (...args: any[]) => console.warn(`[${extensionId}]`, ...args),
-        info: (...args: any[]) => console.info(`[${extensionId}]`, ...args),
+        log: (...args: any[]) =>
+          console.log(chalk.green(`[${extensionId}]`, ...args)),
+        error: (...args: any[]) =>
+          console.error(chalk.red(`[${extensionId}]`, ...args)),
+        warn: (...args: any[]) =>
+          console.warn(chalk.yellow(`[${extensionId}]`, ...args)),
+        info: (...args: any[]) =>
+          console.info(chalk.yellow(`[${extensionId}]`, ...args)),
       },
 
       // Extension API
@@ -272,13 +278,13 @@ export class ExtensionManager {
         on: (event: string, handler: (event: CustomEvent) => void) => {
           this.eventBus.addEventListener(
             `extension:${extensionId}:${event}`,
-            handler
+            handler as EventListener
           );
         },
 
         // Global event listening
         onGlobal: (event: string, handler: (event: CustomEvent) => void) => {
-          this.eventBus.addEventListener(event, handler);
+          this.eventBus.addEventListener(event, handler as EventListener);
         },
 
         // Extension iletişimi
@@ -316,14 +322,6 @@ export class ExtensionManager {
           return fetch(url, options);
         },
       },
-
-      // Global objelerden bazılarını kısıtla
-      setTimeout: undefined,
-      setInterval: undefined,
-      process: undefined,
-      require: undefined,
-      global: undefined,
-      globalThis: undefined,
     };
 
     return vm.createContext(sandbox);
@@ -359,14 +357,15 @@ export class ExtensionManager {
       `,
         context,
         {
-          timeout: 30000,
           displayErrors: true,
         }
       );
 
       return result;
     } catch (error) {
-      throw new Error(`Extension execution failed: ${error.message}`);
+      throw new Error(
+        `Extension execution failed: ${(error as Error).message}`
+      );
     }
   }
 

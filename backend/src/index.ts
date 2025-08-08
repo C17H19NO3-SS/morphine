@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import dotenv from "dotenv";
 import { Elysia } from "elysia";
+1;
 import { swagger } from "@elysiajs/swagger";
 import { staticPlugin } from "@elysiajs/static";
 import { HomeController } from "./Controllers/Home";
