@@ -7,9 +7,12 @@ import { HomeController } from "./Controllers/Home";
 import { ApiController } from "./Controllers/api/api";
 import { Database } from "./Lib/Database";
 import { rateLimit } from "elysia-rate-limit";
+import { ExtensionManager } from "./Lib/Extension";
 dotenv.config({ quiet: true });
 
 const app = new Elysia();
+
+new ExtensionManager().loadAllExtensions();
 
 app.use(
   swagger({
