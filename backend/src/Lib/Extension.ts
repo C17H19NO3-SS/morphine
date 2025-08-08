@@ -3,26 +3,8 @@ import { stringToStructureCoercions } from "elysia/schema";
 import { readdir, readFile, stat, exists } from "fs/promises";
 import { join, basename } from "path";
 import vm from "vm";
-
-interface ExtensionManifest {
-  version: string;
-  author: string;
-  index: string;
-  name?: string;
-  description?: string;
-  dependencies?: string[];
-  permissions?: string[];
-}
-
-interface LoadedExtension {
-  id: string;
-  manifest: ExtensionManifest;
-  context: vm.Context;
-  plugin: any;
-  active: boolean;
-  path: string;
-  loadedAt: Date;
-}
+import type { ExtensionManifest, LoadedExtension } from "../../types/types";
+import type Elysia from "elysia";
 
 class PluginTranspiler {
   private cache = new Map<string, string>();
@@ -89,10 +71,12 @@ export class ExtensionManager {
   private eventBus = new EventTarget();
   private transpiler: PluginTranspiler;
   private extensionsPath: string;
+  private app: Elysia;
 
-  constructor(extensionsPath = "./extensions") {
+  constructor(app: Elysia, extensionsPath = "./extensions") {
     this.extensionsPath = extensionsPath;
     this.transpiler = new PluginTranspiler();
+    this.app = app;
   }
 
   // Tüm eklentileri tarayıp yükle
@@ -111,7 +95,9 @@ export class ExtensionManager {
       });
       const extensionDirs = entries.filter((entry) => entry.isDirectory());
 
-      console.log(`Found ${extensionDirs.length} potential extensions`);
+      console.log(
+        chalk.green(`Found ${extensionDirs.length} potential extensions`)
+      );
 
       for (const dir of extensionDirs) {
         const extensionId = dir.name;
@@ -120,15 +106,20 @@ export class ExtensionManager {
         try {
           await this.loadExtension(extensionId, extensionPath);
           results.success.push(extensionId);
-          console.log(`✓ Extension loaded: ${extensionId}`);
+          console.log(chalk.green(`✓ Extension loaded: ${extensionId}`));
         } catch (error) {
           results.failed.push(extensionId);
-          console.error(`✗ Failed to load extension ${extensionId}:`, error);
+          console.error(
+            chalk.red(`✗ Failed to load extension ${extensionId}:`),
+            error
+          );
         }
       }
 
       console.log(
-        `Extensions loaded: ${results.success.length} success, ${results.failed.length} failed`
+        chalk.green(
+          `Extensions loaded: ${results.success.length} success, ${results.failed.length} failed`
+        )
       );
       return results;
     } catch (error) {

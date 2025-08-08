@@ -1,7 +1,6 @@
 import chalk from "chalk";
 import dotenv from "dotenv";
 import { Elysia } from "elysia";
-1;
 import { swagger } from "@elysiajs/swagger";
 import { staticPlugin } from "@elysiajs/static";
 import { HomeController } from "./Controllers/Home";
@@ -11,45 +10,44 @@ import { rateLimit } from "elysia-rate-limit";
 import { ExtensionManager } from "./Lib/Extension";
 dotenv.config({ quiet: true });
 
-const app = new Elysia();
-
-new ExtensionManager().loadAllExtensions();
-
-app.use(
-  swagger({
-    documentation: {
-      info: {
-        version: "1.0.0",
-        title: "Morphine API v1.0.0",
-      },
-      tags: [
-        {
-          name: "Authentication",
+const app = new Elysia()
+  .use(
+    swagger({
+      documentation: {
+        info: {
+          version: "1.0.0",
+          title: "Morphine API v1.0.0",
         },
-      ],
-    },
-  })
-);
-app.use(
-  rateLimit({
-    duration: 60 * 10,
-    max: 100,
-  })
-);
-app.use(
-  staticPlugin({
-    indexHTML: true,
-    prefix: "",
-  })
-);
-app.use(HomeController);
-app.use(ApiController);
+        tags: [
+          {
+            name: "Authentication",
+          },
+        ],
+      },
+    })
+  )
+  .use(
+    rateLimit({
+      duration: 60 * 10,
+      max: 100,
+    })
+  )
+  .use(
+    staticPlugin({
+      indexHTML: true,
+      prefix: "",
+    })
+  )
+  .use(HomeController)
+  .use(ApiController)
+  .listen(Number(process.env.EXPRESS_PORT), () => {
+    console.log(
+      chalk.green(`Server is running on port ${process.env.EXPRESS_PORT}`)
+    );
+  });
 
-app.listen(Number(process.env.EXPRESS_PORT), () => {
-  console.log(
-    chalk.green(`Server is running on port ${process.env.EXPRESS_PORT}`)
-  );
-});
+const extensionManager = new ExtensionManager(app);
+await extensionManager.loadAllExtensions();
 
 process.on("uncaughtException", (err) => {
   Database.query(

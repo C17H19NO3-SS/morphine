@@ -1,3 +1,5 @@
 import { type test } from "./types";
 
-const deneme: test = "abc";
+extension.on("deneme", (event) => {
+  console.log(event);
+});
