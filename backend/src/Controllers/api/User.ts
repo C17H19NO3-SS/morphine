@@ -2,7 +2,6 @@ import jwt from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
 import { User } from "../../Lib/User";
 import bcrypt from "bcrypt";
-import { Res } from "../../Lib/Response";
 import type { UserInterface } from "../../../types/types";
 
 export const UserApiController = new Elysia({
@@ -21,7 +20,8 @@ export const UserApiController = new Elysia({
         async ({ body: { username, password }, jwt, status }) => {
           const user = await User.findUserByUsername(username, true);
 
-          if (!user) return Res.error("User not found", 401);
+          if (!user)
+            return status(401, { message: "User not found", success: false });
 
           if (bcrypt.compareSync(password, user.password as string))
             return status(200, {

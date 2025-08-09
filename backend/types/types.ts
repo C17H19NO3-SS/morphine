@@ -1,3 +1,4 @@
+import type Elysia from "elysia";
 import type { Context } from "vm";
 
 export interface UserInterface {
@@ -11,22 +12,40 @@ export interface UserTokenInterface {
   token: string;
 }
 
-export interface ExtensionManifest {
+export interface Manifest {
   version: string;
+  name: string;
   author: string;
   index: string;
-  name?: string;
-  description?: string;
-  dependencies?: string[];
-  permissions?: string[];
+  env?: string;
+  publicDir?: string;
+  permissions?: {
+    console?:
+      | boolean
+      | {
+          log?: boolean;
+          info?: boolean;
+          warn?: boolean;
+          error?: boolean;
+        };
+    network?: boolean; // fetch / Request allowed
+    timers?: boolean; // setTimeout/setInterval allowed
+    env?: string[]; // whitelist of env vars accessible via sandboxed process.env
+  };
 }
 
-export interface LoadedExtension {
-  id: string;
-  manifest: ExtensionManifest;
-  context: Context;
-  plugin: any;
-  active: boolean;
-  path: string;
-  loadedAt: Date;
+export interface ExtensionUtils {
+  log: (...text: any[]) => void;
+  error: (...text: any[]) => void;
+  info: (...text: any[]) => void;
+  warn: (...text: any[]) => void;
+  app: Elysia<any>;
+  name: string;
+  prefix: string;
+  root: string;
+  mountStatic: (
+    relativeDir?: string,
+    urlPrefix?: string,
+    indexHTML?: boolean
+  ) => void;
 }

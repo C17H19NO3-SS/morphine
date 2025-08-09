@@ -1,5 +1,14 @@
 {
   "version": "0.0.1-beta",
+  "name": "test",
   "author": "Morphine",
-  "index": "index.ts"
+  "index": "index.ts",
+  "env": "dev",
+  "publicDir": "public",
+  "permissions": {
+    "console": true,
+    "network": false,
+    "timers": true,
+    "env": ["NODE_ENV"]
+  }
 }

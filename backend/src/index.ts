@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import dotenv from "dotenv";
-import { Elysia } from "elysia";
+import Elysia from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { staticPlugin } from "@elysiajs/static";
 import { HomeController } from "./Controllers/Home";
@@ -10,7 +10,16 @@ import { rateLimit } from "elysia-rate-limit";
 import { ExtensionManager } from "./Lib/Extension";
 dotenv.config({ quiet: true });
 
-const app = new Elysia()
+const app = new Elysia();
+
+const extensionManager = new ExtensionManager(true, () => {
+  app.use(extensionManager.app);
+  app.listen(3000, () => {
+    console.log(chalk.green("Server started on port 3000"));
+  });
+});
+
+app
   .use(
     swagger({
       documentation: {
@@ -32,22 +41,14 @@ const app = new Elysia()
       max: 100,
     })
   )
-  .use(
-    staticPlugin({
-      indexHTML: true,
-      prefix: "",
-    })
-  )
+  // .use(
+  //   staticPlugin({
+  //     indexHTML: true,
+  //     prefix: "",
+  //   })
+  // )
   .use(HomeController)
-  .use(ApiController)
-  .listen(Number(process.env.EXPRESS_PORT), () => {
-    console.log(
-      chalk.green(`Server is running on port ${process.env.EXPRESS_PORT}`)
-    );
-  });
-
-const extensionManager = new ExtensionManager(app);
-await extensionManager.loadAllExtensions();
+  .use(ApiController);
 
 process.on("uncaughtException", (err) => {
   Database.query(
