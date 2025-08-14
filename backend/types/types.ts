@@ -48,4 +48,12 @@ export interface ExtensionUtils {
     urlPrefix?: string,
     indexHTML?: boolean
   ) => void;
+  db: {
+    query: <T = any>(query: string, ...parameters: any[]) => Promise<T[]>;
+    execute: <T = any>(query: string, ...parameters: any[]) => Promise<T>;
+  };
+  bcrypt: {
+    hash: (password: string, rounds?: number) => string;
+    compare: (plain: string, hashed: string) => boolean;
+  };
 }

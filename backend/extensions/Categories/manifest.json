@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "name": "categories",
+  "author": "Morphine",
+  "index": "index.ts",
+  "permissions": {
+    "console": true,
+    "network": false,
+    "timers": false,
+    "env": []
+  }
+}

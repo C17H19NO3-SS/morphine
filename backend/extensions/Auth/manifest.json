@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "name": "auth",
+  "author": "Morphine",
+  "index": "index.ts",
+  "permissions": {
+    "console": true,
+    "network": false,
+    "timers": true,
+    "env": ["JWT_SECRET"]
+  }
+}

@@ -1,10 +1,15 @@
 import chalk from "chalk";
 import { readdir, stat, readFile } from "fs/promises";
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import path, { join } from "path";
 import vm from "node:vm";
+import crypto from "node:crypto";
+import jwt from "@elysiajs/jwt";
 import type { ExtensionUtils as ExtUtils, Manifest } from "../../types/types";
+import { Database } from "./Database";
+import bcrypt from "bcrypt";
+import { Logger } from "./Logger";
 
 export class ExtensionManager {
   public app: Elysia<any>;
@@ -14,7 +19,7 @@ export class ExtensionManager {
     onLoad: () => void = () => {}
   ) {
     this.onLoad = onLoad;
-    this.app = new Elysia({ prefix: "/extensions" });
+    this.app = new Elysia();
 
     if (loadAllExtensions) {
       this.loadAllExtensions().then(() => {
@@ -37,17 +42,12 @@ export class ExtensionManager {
         const raw = await readFile(manifestPath, "utf8");
         manifest = JSON.parse(raw) as Manifest;
       } catch (error) {
-        console.error(
-          chalk.red(`Failed to read manifest at ${manifestPath}`),
-          error
-        );
+        void Logger.error(`Failed to read manifest at ${manifestPath}`, error);
         continue;
       }
       if (!manifest?.name || !manifest?.index) {
-        console.warn(
-          chalk.yellow(
-            `Skipping extension at ${extensionRoot}: 'name' and 'index' are required in manifest.json`
-          )
+        void Logger.warn(
+          `Skipping extension at ${extensionRoot}: 'name' and 'index' are required in manifest.json`
         );
         continue;
       }
@@ -71,8 +71,8 @@ export class ExtensionManager {
     try {
       code = await Bun.file(modulePath).text();
     } catch (error) {
-      console.error(
-        chalk.red(`Failed to read extension module: ${modulePath}`),
+      void Logger.error(
+        `Failed to read extension module: ${modulePath}`,
         error
       );
       return;
@@ -82,17 +82,18 @@ export class ExtensionManager {
       const transpiler = new Bun.Transpiler({ loader: "ts" });
       transpiled = transpiler.transformSync(code);
     } catch (error) {
-      console.error(
-        chalk.red(`Failed to transpile extension module: ${modulePath}`),
+      void Logger.error(
+        `Failed to transpile extension module: ${modulePath}`,
         error
       );
       return;
     }
-    // Strip ESM exports to allow running in vm Script
+    // Strip ESM exports/imports to allow running in vm Script and rely on globals from context
     transpiled = transpiled
       .replace(/\bexport\s+default\s+/g, "const __default__ = ")
       .replace(/\bexport\s+(const|let|var|function|class)\s+/g, "$1 ")
-      .replace(/\bexport\s*\{[^}]*\};?/g, "");
+      .replace(/\bexport\s*\{[^}]*\};?/g, "")
+      .replace(/^import\s+[^;]+;\s*$/gm, "");
 
     const extensionPrefix = `/${manifest.name.toLowerCase()}`;
     const extensionApp = new Elysia({ prefix: extensionPrefix });
@@ -104,7 +105,7 @@ export class ExtensionManager {
       warn: (...text: any[]) => console.warn(chalk.yellow(...text)),
       app: extensionApp,
       name: manifest.name,
-      prefix: `/extensions${extensionPrefix}`,
+      prefix: `${extensionPrefix}`,
       root,
       mountStatic: (
         relativeDir = manifest.publicDir || "public",
@@ -119,6 +120,20 @@ export class ExtensionManager {
             indexHTML,
           })
         );
+      },
+      db: {
+        query: async <T = any>(query: string, ...parameters: any[]) =>
+          (await (Database.query as any)(query, ...parameters)) as T[],
+        execute: async <T = any>(query: string, ...parameters: any[]) =>
+          (await (Database.execute as any)(query, ...parameters)) as T,
+      },
+      bcrypt: {
+        hash: (
+          password: string,
+          rounds = Number(process.env.BCRYPT_SALT_ROUND || 10)
+        ) => bcrypt.hashSync(password, rounds),
+        compare: (plain: string, hashed: string) =>
+          bcrypt.compareSync(plain, hashed),
       },
     };
 
@@ -168,6 +183,10 @@ export class ExtensionManager {
       module: moduleObj,
       exports: moduleExports,
       require: requireShim,
+      Elysia,
+      t,
+      jwt,
+      crypto,
     });
 
     const wrapper = `(async () => { ${transpiled}\n;return (typeof init!=="undefined"?init:module?.exports?.init); })()`;
@@ -178,8 +197,8 @@ export class ExtensionManager {
       init = result as any;
       if (typeof init !== "function") throw new Error("init export not found");
     } catch (error) {
-      console.error(
-        chalk.red(`Failed to evaluate extension module: ${modulePath}`),
+      void Logger.error(
+        `Failed to evaluate extension module: ${modulePath}`,
         error
       );
       return;

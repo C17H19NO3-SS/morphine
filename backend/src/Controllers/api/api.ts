@@ -1,10 +1,9 @@
 import Elysia from "elysia";
-import { UserApiController } from "./User";
 
 const elysia = new Elysia({
   prefix: "/api",
 });
 
-elysia.use(UserApiController);
+// User API moved into extension: /extensions/users/auth
 
 export const ApiController = elysia;

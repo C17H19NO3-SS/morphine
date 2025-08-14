@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "name": "users",
+  "author": "Morphine",
+  "index": "index.ts",
+  "publicDir": "public",
+  "permissions": {
+    "console": true,
+    "network": false,
+    "timers": false,
+    "env": ["BCRYPT_SALT_ROUND", "JWT_SECRET"]
+  }
+}

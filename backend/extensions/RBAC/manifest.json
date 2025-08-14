@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "name": "rbac",
+  "author": "Morphine",
+  "index": "index.ts",
+  "permissions": {
+    "console": true,
+    "network": false,
+    "timers": false,
+    "env": ["JWT_SECRET"]
+  }
+}
+
